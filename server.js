@@ -4,7 +4,15 @@ const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const port = 3000;
 
-app.use(express.static('public'));
+app.use(express.static(__dirname + '/public'));
+
+app.get('/index', (req, res) => {
+  res.sendFile(__dirname + '/public/index.html')
+})
+
+app.get('/client', (req, res) => {
+    res.sendFile(__dirname + '/public/client.html');
+});
 
 io.on('connection', (socket) => {
   console.log('A new user connected');
@@ -12,10 +20,6 @@ io.on('connection', (socket) => {
   socket.on('join', (username) => {
     console.log(`${username} joined the room`);
     io.emit('user joined', username);
-  });
-
-  socket.on('track', (trackId) => {
-    socket.broadcast.emit('track', trackId);
   });
 
   socket.on('offer', (offer, trackId) => {
