@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC - Viewer</title>
+</head>
+<body>
+    <h1>Viewer screen share</h1>
+    <button id="start">Start Receive</button>
+    <video id="video" autoplay></video>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io()
+        const video = document.querySelector('#video');
+        const startButton = document.querySelector('#start');
+        let pc = null;
+
+        async function startReceive() {
+            stream = await navigator.mediaDevices.getDisplayMedia({ video: true })
+            console.log(stream)
+            pc = new RTCPeerConnection()
+            stream.getTracks().forEach(track => pc.addTrack(track, stream))
+            pc.onicecandidate = (event) => {
+                console.log('candidate')
+                if(event.candidate) {
+                    socket.emit('candidate', event.candidate)
+                }
+            }
+
+            pc.ontrack = (event) => {
+                console.log(event)
+                video.srcObject = event.streams[0]
+            }
+
+            const offer = await pc.createOffer()
+            await pc.setLocalDescription(offer)
+            socket.emit('offer', offer)
+
+        }
+
+        socket.on('answer', async(answer) => {
+            await pc.setRemoteDescription(answer)
+        })
+
+        socket.on('candidate', async (candidate) => {
+            await pc.addIceCandidate(candidate)
+        })
+
+        startButton.addEventListener('click', startReceive);
+    </script>
+</body>
+</html>

@@ -17,11 +17,6 @@ app.get('/client', (req, res) => {
 io.on('connection', (socket) => {
   console.log('A new user connected');
 
-  socket.on('join', (username) => {
-    console.log(`${username} joined the room`);
-    io.emit('user joined', username);
-  });
-
   socket.on('offer', (offer, trackId) => {
     socket.broadcast.emit('offer', offer, trackId);
   });
@@ -30,8 +25,8 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('answer', answer);
   });
 
-  socket.on('icecandidate', (candidate) => {
-    socket.broadcast.emit('icecandidate', candidate);
+  socket.on('candidate', (candidate) => {
+    socket.broadcast.emit('candidate', candidate);
   });
 
   socket.on('disconnect', () => {

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC</title>
+</head>
+<body>
+    <script src="/socket.io/socket.io.js"></script>
+    <h1>Share your screen</h1>
+    <div>   
+        <button id="start">
+            Start sharing
+        </button>
+        <button id="stop">
+            Stop sharing
+        </button>
+    </div>
+
+    <video id="video" autoplay></video>
+    <script>
+        const socket = io();
+        const startButton = document.querySelector('#start');
+        const stopButton = document.querySelector('#stop');
+        const video = document.querySelector('#video');
+
+        let stream = null;
+        let pc = null;
+
+        async function startScreenShare() {
+            stream = await navigator.mediaDevices.getDisplayMedia({ video: true })
+            video.srcObject = stream;
+        }
+
+        socket.on('offer', async(offer) => {
+            pc = new RTCPeerConnection();
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+            pc.onicecandidate = event => {
+                if(event.candidate) {
+                    console.log("candidate")
+                    socket.emit('candidate', event.candidate)
+                }
+            }
+
+            await pc.setRemoteDescription(offer)
+            const answer = await pc.createAnswer()
+            await pc.setLocalDescription(answer)
+            socket.emit('answer', answer)
+            console.log(offer)
+        });
+
+        function stopScreenShare() {
+            stream.getTracks().forEach(track => track.stop())
+            stream = null
+            video.srcObject = null
+            pc.close()
+            pc = null
+        }
+
+        socket.on('candidate', async(candidate) => {
+            console.log('candidate')
+            await pc.addIceCandidate(candidate);
+        })
+
+        startButton.addEventListener('click', startScreenShare);
+        stopButton.addEventListener('click', stopScreenShare);
+
+    </script>
+</body>
+</html>
